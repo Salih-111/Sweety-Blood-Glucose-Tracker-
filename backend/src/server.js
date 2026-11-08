@@ -3,6 +3,7 @@ import cors from "cors";
 import pool from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import readingsRoutes from "./routes/readingsRoutes.js";
+import reportsRoutes from "./routes/reportsRoutes.js";
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.get("/db-test", async (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/readings", readingsRoutes);
+app.use("/api/reports", reportsRoutes);
 
 const PORT = process.env.PORT || 5000;
 
