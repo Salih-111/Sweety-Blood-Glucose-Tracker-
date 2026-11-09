@@ -4,6 +4,16 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
 
+const setAuthCookie = (res, token) => {
+  res.cookie("glucotrack_token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+};
+
+
 const generateToken = (userId) => {
   return jwt.sign(
     { userId },
@@ -113,7 +123,7 @@ export const login = async (req, res) => {
     }
 
     const token = generateToken(user.id);
-
+    setAuthCookie(res, token);
     return res.status(200).json({
       message: "Login successful.",
       user: {
@@ -121,7 +131,6 @@ export const login = async (req, res) => {
         name: user.name,
         email: user.email,
       },
-      token,
     });
   } catch (error) {
     console.error("Login error:", error.message);
@@ -156,4 +165,17 @@ export const getMe = async (req, res) => {
       message: "Something went wrong.",
     });
   }
+};
+
+// Logout user
+export const logout = (req, res) => {
+  res.clearCookie("glucotrack_token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
+
+  return res.status(200).json({
+    message: "Logout successful.",
+  });
 };

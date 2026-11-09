@@ -1,21 +1,18 @@
 import jwt from "jsonwebtoken";
 
 const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  // Read JWT from HttpOnly cookie
+  const token = req.cookies?.glucotrack_token;
 
-  // Check whether the Authorization header contains a Bearer token
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!token) {
     return res.status(401).json({
       message: "Authentication required.",
     });
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Store authenticated user's ID in the request
     req.user = {
       userId: decoded.userId,
     };
@@ -29,4 +26,3 @@ const authMiddleware = (req, res, next) => {
 };
 
 export default authMiddleware;
-
