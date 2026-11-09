@@ -1,27 +1,54 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import {
-  ArrowRight,
-  Eye,
-  EyeOff,
-  LockKeyhole,
-  Mail,
-} from "lucide-react";
+import { useState, type FormEvent } from "react"
+import { Link } from "react-router-dom"
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react"
 
-import AuthLayout from "../components/AuthLayout";
+import AuthLayout from "../components/AuthLayout"
+import apiRequest from "../services/api"
 
 function Login() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [message, setMessage] = useState("")
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState("")
 
-    // Temporary: API integration will be added next.
-    setMessage("Login form is ready. Authentication integration is next.");
-  };
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    setMessage("")
+    setError("")
+
+    try {
+      setIsSubmitting(true)
+
+      const data = await apiRequest<{
+        message: string
+        user: {
+          id: number
+          name: string
+          email: string
+        }
+      }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      })
+
+      setMessage(data.message)
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Login failed. Please try again.",
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <AuthLayout variant="login">
@@ -62,8 +89,8 @@ function Login() {
               placeholder="Enter your email"
               value={email}
               onChange={(event) => {
-                setEmail(event.target.value);
-                setMessage("");
+                setEmail(event.target.value)
+                setMessage("")
               }}
               required
               className="w-full rounded-xl border border-(--app-border) bg-(--surface) py-3 pl-11 pr-4 text-sm text-(--text-primary) outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20"
@@ -93,8 +120,8 @@ function Login() {
               placeholder="Enter your password"
               value={password}
               onChange={(event) => {
-                setPassword(event.target.value);
-                setMessage("");
+                setPassword(event.target.value)
+                setMessage("")
               }}
               required
               className="w-full rounded-xl border border-(--app-border) bg-(--surface) py-3 pl-11 pr-12 text-sm text-(--text-primary) outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20"
@@ -114,14 +141,23 @@ function Login() {
         {/* Login button */}
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-4 focus:ring-brand-500/20"
+          disabled={isSubmitting}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus:outline-none focus:ring-4 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Login
-          <ArrowRight size={18} />
+          {isSubmitting ? "Logging in..." : "Login"}
+          {!isSubmitting && <ArrowRight size={18} />}
         </button>
+        {error && (
+          <p role="alert" className="text-center text-sm text-red-500">
+            {error}
+          </p>
+        )}
 
         {message && (
-          <p role="status" className="text-center text-xs text-brand-600 dark:text-brand-400">
+          <p
+            role="status"
+            className="text-center text-xs text-brand-600 dark:text-brand-400"
+          >
             {message}
           </p>
         )}
@@ -142,7 +178,7 @@ function Login() {
         Your health journey, one reading at a time.
       </p>
     </AuthLayout>
-  );
+  )
 }
 
-export default Login;
+export default Login
