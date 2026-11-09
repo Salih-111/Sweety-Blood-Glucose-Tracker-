@@ -32,10 +32,10 @@
 
 // export default App;
 
-import SplashScreen from "./components/SplashScreen";
+import AuthCheckingScreen from "./components/AuthCheckingScreen";
 
 function App() {
-  return <SplashScreen />;
+  return <AuthCheckingScreen />;
 }
 
 export default App;
