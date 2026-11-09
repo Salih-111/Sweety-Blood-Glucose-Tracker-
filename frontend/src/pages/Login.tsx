@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react"
+import useAuth from "../context/useAuth"
 
 import AuthLayout from "../components/AuthLayout"
 import apiRequest from "../services/api"
@@ -14,16 +15,17 @@ function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
 
+  const { refreshUser } = useAuth()
+  const navigate = useNavigate()
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-
     setMessage("")
     setError("")
 
     try {
       setIsSubmitting(true)
-
-      const data = await apiRequest<{
+      await apiRequest<{
         message: string
         user: {
           id: number
@@ -38,7 +40,14 @@ function Login() {
         }),
       })
 
-      setMessage(data.message)
+      // Update the shared authentication state
+      const currentUser = await refreshUser()
+
+      if (!currentUser) {
+        throw new Error("Unable to verify your login session.")
+      }
+      // Redirect to Dashboard
+      navigate("/dashboard", { replace: true })
     } catch (error) {
       setError(
         error instanceof Error
