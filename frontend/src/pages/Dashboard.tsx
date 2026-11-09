@@ -1,3 +1,5 @@
+
+import { useEffect, useState } from "react";
 import {
   Activity,
   TrendingUp,
@@ -10,31 +12,127 @@ import {
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import useAuth from "../context/useAuth";
 
-const summaryCards = [
-  {
-    title: "Average glucose",
-    icon: Activity,
-    description: "Average reading",
-  },
-  {
-    title: "Highest reading",
-    icon: TrendingUp,
-    description: "Maximum glucose level",
-  },
-  {
-    title: "Lowest reading",
-    icon: TrendingDown,
-    description: "Minimum glucose level",
-  },
-  {
-    title: "Total readings",
-    icon: Hash,
-    description: "Recorded readings",
-  },
-];
+import {
+  getReadings,
+  getMonthToDateReport,
+} from "../services/glucoseService";
+
+import type {
+  GlucoseReading,
+  ReportSummary,
+  TimeSlot,
+} from "../types/glucose";
+
+// Get today's date in the browser's local timezone
+function getLocalDate() {
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+// Convert API time-slot values into readable labels
+const timeSlotLabels: Record<TimeSlot, string> = {
+  morning_fasting: "Morning fasting",
+  after_breakfast: "After breakfast",
+  after_lunch: "After lunch",
+  after_dinner: "After dinner",
+};
+
+// Format reading date for display
+function formatReadingDate(date: string) {
+  return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 function Dashboard() {
   const { user } = useAuth();
+
+  const [readings, setReadings] = useState<GlucoseReading[]>([]);
+  const [summary, setSummary] = useState<ReportSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Fetch dashboard data when the page loads
+  useEffect(() => {
+    let isActive = true;
+
+    const loadDashboard = async () => {
+      try {
+        const today = getLocalDate();
+
+        const [readingsData, reportData] = await Promise.all([
+          getReadings(),
+          getMonthToDateReport(today),
+        ]);
+
+        if (!isActive) return;
+
+        setReadings(readingsData.readings);
+        setSummary(reportData.summary);
+      } catch (error) {
+        if (!isActive) return;
+
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load dashboard data.",
+        );
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadDashboard();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const recentReadings = readings.slice(0, 5);
+
+  const summaryCards = [
+    {
+      title: "Average glucose",
+      value:
+        summary?.average !== null && summary?.average !== undefined
+          ? summary.average.toFixed(1)
+          : "—",
+      unit: "mg/dL",
+      icon: Activity,
+      description: "Month-to-date average",
+    },
+    {
+      title: "Highest reading",
+      value: summary?.high?.toString() ?? "—",
+      unit: "mg/dL",
+      icon: TrendingUp,
+      description: "Maximum glucose level",
+    },
+    {
+      title: "Lowest reading",
+      value: summary?.low?.toString() ?? "—",
+      unit: "mg/dL",
+      icon: TrendingDown,
+      description: "Minimum glucose level",
+    },
+    {
+      title: "Total readings",
+      value: summary?.count.toString() ?? (isLoading ? "…" : "0"),
+      unit: "",
+      icon: Hash,
+      description: "Recorded this month",
+    },
+  ];
 
   return (
     <DashboardLayout>
@@ -53,6 +151,15 @@ function Dashboard() {
             Here's an overview of your glucose readings and health trends.
           </p>
         </div>
+
+        {error && (
+          <p
+            role="alert"
+            className="mb-5 rounded-xl bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400"
+          >
+            {error}
+          </p>
+        )}
 
         {/* Summary cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -74,9 +181,17 @@ function Dashboard() {
                   </div>
                 </div>
 
-                <h2 className="mt-5 text-3xl font-bold text-(--text-primary)">
-                  —
-                </h2>
+                <div className="mt-5 flex items-baseline gap-2">
+                  <h2 className="text-3xl font-bold text-(--text-primary)">
+                    {isLoading ? "…" : card.value}
+                  </h2>
+
+                  {card.unit && !isLoading && card.value !== "—" && (
+                    <span className="text-xs text-(--text-secondary)">
+                      {card.unit}
+                    </span>
+                  )}
+                </div>
 
                 <p className="mt-2 text-xs text-(--text-secondary)">
                   {card.description}
@@ -113,20 +228,50 @@ function Dashboard() {
             <span className="text-right">Glucose</span>
           </div>
 
-          <div className="flex flex-col items-center justify-center px-5 py-12 text-center">
-            <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
-              <Activity size={27} />
+          {isLoading ? (
+            <div className="px-5 py-12 text-center text-sm text-(--text-secondary)">
+              Loading readings...
             </div>
+          ) : recentReadings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center px-5 py-12 text-center">
+              <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                <Activity size={27} />
+              </div>
 
-            <h3 className="text-sm font-semibold text-(--text-primary)">
-              No readings to display yet
-            </h3>
+              <h3 className="text-sm font-semibold text-(--text-primary)">
+                No readings to display yet
+              </h3>
 
-            <p className="mt-2 max-w-sm text-sm text-(--text-secondary)">
-              Your glucose readings will appear here once you start recording
-              them.
-            </p>
-          </div>
+              <p className="mt-2 max-w-sm text-sm text-(--text-secondary)">
+                Your glucose readings will appear here once you start recording
+                them.
+              </p>
+            </div>
+          ) : (
+            <div>
+              {recentReadings.map((reading) => (
+                <div
+                  key={reading.id}
+                  className="grid grid-cols-3 items-center gap-3 border-b border-(--app-border) px-5 py-4 last:border-b-0"
+                >
+                  <span className="text-xs text-(--text-secondary) sm:text-sm">
+                    {formatReadingDate(reading.reading_date)}
+                  </span>
+
+                  <span className="text-xs font-medium text-(--text-primary) sm:text-sm">
+                    {timeSlotLabels[reading.time_slot]}
+                  </span>
+
+                  <span className="text-right text-sm font-semibold text-(--text-primary)">
+                    {reading.glucose_value}{" "}
+                    <span className="text-xs font-normal text-(--text-secondary)">
+                      mg/dL
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -175,7 +320,7 @@ function Dashboard() {
               </p>
 
               <p className="mt-5 text-xs font-medium text-(--text-secondary)">
-                Statistics will appear here.
+                Report details coming next.
               </p>
             </div>
           ))}
