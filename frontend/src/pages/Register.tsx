@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import {
   ArrowRight,
   Eye,
@@ -11,6 +11,7 @@ import {
 
 import AuthLayout from "../components/AuthLayout"
 import apiRequest from "../services/api"
+import useAuth from "../context/useAuth"
 
 function Register() {
   const [name, setName] = useState("")
@@ -23,6 +24,8 @@ function Register() {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { refreshUser } = useAuth()
+  const navigate = useNavigate()
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -42,8 +45,7 @@ function Register() {
 
     try {
       setIsSubmitting(true)
-
-      const data = await apiRequest<{
+      await apiRequest<{
         message: string
         user: {
           id: number
@@ -58,11 +60,15 @@ function Register() {
           password,
         }),
       })
+      const currentUser = await refreshUser()
 
-      setMessage(data.message)
+      if (!currentUser) {
+        throw new Error(
+          "Account created, but unable to verify your session. Please log in.",
+        )
+      }
 
-      setPassword("")
-      setConfirmPassword("")
+      navigate("/dashboard", { replace: true })
     } catch (error) {
       setError(
         error instanceof Error
