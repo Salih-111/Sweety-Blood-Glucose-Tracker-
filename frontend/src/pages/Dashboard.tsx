@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
   TrendingUp,
@@ -11,6 +10,7 @@ import {
 
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import useAuth from "../context/useAuth";
+import AddReadingForm from "../components/AddReadingForm";
 
 import {
   getReadings,
@@ -23,7 +23,7 @@ import type {
   TimeSlot,
 } from "../types/glucose";
 
-// Get today's date in the browser's local timezone
+// Get today's date in the browser's local timezone.
 function getLocalDate() {
   const today = new Date();
 
@@ -34,7 +34,7 @@ function getLocalDate() {
   return `${year}-${month}-${day}`;
 }
 
-// Convert API time-slot values into readable labels
+// Convert API time-slot values into readable labels.
 const timeSlotLabels: Record<TimeSlot, string> = {
   morning_fasting: "Morning fasting",
   after_breakfast: "After breakfast",
@@ -42,13 +42,29 @@ const timeSlotLabels: Record<TimeSlot, string> = {
   after_dinner: "After dinner",
 };
 
-// Format reading date for display
+// Format reading date for display.
 function formatReadingDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
+}
+
+// Fetch the data without changing React state. This helper is shared by
+// the initial page load and the refresh after a reading is added.
+async function fetchDashboardData() {
+  const today = getLocalDate();
+
+  const [readingsData, reportData] = await Promise.all([
+    getReadings(),
+    getMonthToDateReport(today),
+  ]);
+
+  return {
+    readings: readingsData.readings,
+    summary: reportData.summary,
+  };
 }
 
 function Dashboard() {
@@ -59,23 +75,38 @@ function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch dashboard data when the page loads
+  // Refresh the dashboard after a reading is added.
+  const loadDashboard = useCallback(async () => {
+    try {
+      const data = await fetchDashboardData();
+
+      setError("");
+      setReadings(data.readings);
+      setSummary(data.summary);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load dashboard data.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Load data when the dashboard first mounts.
   useEffect(() => {
     let isActive = true;
 
-    const loadDashboard = async () => {
+    const loadInitialDashboard = async () => {
       try {
-        const today = getLocalDate();
-
-        const [readingsData, reportData] = await Promise.all([
-          getReadings(),
-          getMonthToDateReport(today),
-        ]);
+        const data = await fetchDashboardData();
 
         if (!isActive) return;
 
-        setReadings(readingsData.readings);
-        setSummary(reportData.summary);
+        setError("");
+        setReadings(data.readings);
+        setSummary(data.summary);
       } catch (error) {
         if (!isActive) return;
 
@@ -91,7 +122,7 @@ function Dashboard() {
       }
     };
 
-    void loadDashboard();
+    void loadInitialDashboard();
 
     return () => {
       isActive = false;
@@ -200,6 +231,11 @@ function Dashboard() {
             );
           })}
         </div>
+      </section>
+
+      {/* Add glucose reading */}
+      <section className="mt-8">
+        <AddReadingForm onReadingAdded={loadDashboard} />
       </section>
 
       {/* Recent readings */}
