@@ -11,7 +11,6 @@ import {
 
 import AuthLayout from "../components/AuthLayout"
 import apiRequest from "../services/api"
-import useAuth from "../context/useAuth"
 
 function Register() {
   const [name, setName] = useState("")
@@ -24,7 +23,6 @@ function Register() {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { refreshUser } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -60,15 +58,13 @@ function Register() {
           password,
         }),
       })
-      const currentUser = await refreshUser()
 
-      if (!currentUser) {
-        throw new Error(
-          "Account created, but unable to verify your session. Please log in.",
-        )
-      }
-
-      navigate("/dashboard", { replace: true })
+      navigate("/login", {
+        replace: true,
+        state: {
+          message: "Account created successfully. Please log in.",
+        },
+      })
     } catch (error) {
       setError(
         error instanceof Error

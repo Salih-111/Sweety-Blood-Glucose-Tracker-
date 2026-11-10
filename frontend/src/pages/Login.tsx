@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useLocation } from "react-router-dom"
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react"
 import useAuth from "../context/useAuth"
 
@@ -7,16 +7,20 @@ import AuthLayout from "../components/AuthLayout"
 import apiRequest from "../services/api"
 
 function Login() {
+   const location = useLocation()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [message, setMessage] = useState("")
+  const [message, setMessage] = useState(
+    typeof location.state?.message === "string" ? location.state.message : "",
+  )
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
 
   const { refreshUser } = useAuth()
   const navigate = useNavigate()
+ 
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

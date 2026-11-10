@@ -9,15 +9,15 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 
 import ProtectedRoute from "./components/ProtectedRoute";
-import AuthCheckingScreen from "./components/AuthCheckingScreen";
 import useAuth from "./context/useAuth";
+import SplashScreen from "./components/SplashScreen";
 
 function HomeRedirect() {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) {
-    return <AuthCheckingScreen />;
-  }
+if (isLoading) {
+  return <SplashScreen />;
+}
 
   return (
     <Navigate
