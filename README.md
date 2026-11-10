@@ -41,6 +41,58 @@ The application supports individual user accounts, secure authentication, glucos
 - High, low, average and total reading statistics.
 - Empty states when no readings are available.
 
+## Screenshots
+
+### Desktop View – Dark Theme
+
+**Login**
+
+![Desktop Login](screenshots/Desktop_View/D_Login.png)
+
+**Register**
+
+![Desktop Register](screenshots/Desktop_View/D_Register.png)
+
+**Dashboard Overview**
+
+![Desktop Overview](screenshots/Desktop_View/D_Overview.png)
+
+**Readings**
+
+![Desktop Readings](screenshots/Desktop_View/D_Readings.png)
+
+**Reports**
+
+![Desktop Reports](screenshots/Desktop_View/D_Reports.png)
+
+### Mobile View – Light Theme
+
+**Login**
+
+![Mobile Login](screenshots/Mobile_view/M_Login.png)
+
+**Register**
+
+![Mobile Register](screenshots/Mobile_view/M_Register.png)
+
+**Dashboard Overview**
+
+![Mobile Overview](screenshots/Mobile_view/M_Overview.png)
+
+**Readings**
+
+![Mobile Readings](screenshots/Mobile_view/M_Readings.png)
+
+**Add Reading**
+
+![Mobile Add Reading](screenshots/Mobile_view/M_Add.png)
+
+**Reports – Daily and Monthly**
+
+![Mobile Reports](screenshots/Mobile_view/M_Reports_1.png)
+
+![Mobile Reports](screenshots/Mobile_view/M_Reports_2.png)
+
 ## Technology Stack
 
 **Frontend**
@@ -82,11 +134,14 @@ sweety-glucose-tracker/
 │   ├── src/
 │   │   ├── components/
 │   │   ├── context/
-│   │   ├── hooks/
 │   │   ├── pages/
 │   │   ├── services/
 │   │   └── types/
 │   └── package.json
+│
+├── screenshots/
+│   ├── Desktop_View/
+│   └── Mobile_view/
 │
 ├── .gitignore
 └── README.md
@@ -105,8 +160,8 @@ Make sure the following are installed:
 ### 1. Clone the repository
 
 ```bash
-git clone <your-github-repository-url>
-cd sweety-glucose-tracker
+git clone https://github.com/Salih-111/Sweety-Blood-Glucose-Tracker-.git
+cd Sweety-Blood-Glucose-Tracker-
 ```
 
 ### 2. Set up the PostgreSQL database
@@ -297,4 +352,5 @@ npm run build
 GlucoTrack is a personal glucose tracking application intended for recording and reviewing measurements. It is not a replacement for professional medical advice or diagnosis.
 
 ## Author
+
 Mohamed Salih
