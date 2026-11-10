@@ -4,7 +4,6 @@ import {
   TrendingUp,
   TrendingDown,
   Hash,
-  CalendarDays,
   ClipboardList,
   Pencil,
   Trash2,
@@ -21,6 +20,7 @@ import AddReadingForm from "../components/AddReadingForm"
 import { getReadings, getMonthToDateReport } from "../services/glucoseService"
 import type { GlucoseReading, ReportSummary, TimeSlot } from "../types/glucose"
 import DeleteReadingModal from "../components/DeleteReadingModal"
+import ReportsSection from "../components/ReportsSection"
 
 // Get today's date in the browser's local timezone.
 function getLocalDate() {
@@ -420,56 +420,9 @@ function Dashboard() {
       </section>
 
       {/* Reports */}
-      <section id="reports" className="mt-10">
-        <div className="mb-5">
-          <h2 className="text-lg font-bold text-(--text-primary)">
-            Reports & insights
-          </h2>
+      {/* Reports and insights */}
+      <ReportsSection />
 
-          <p className="mt-1 text-sm text-(--text-secondary)">
-            Review your glucose statistics across different periods.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            {
-              title: "Daily report",
-              description: "Review readings for a selected day.",
-            },
-            {
-              title: "Month to date",
-              description: "Your progress from the beginning of this month.",
-            },
-            {
-              title: "Previous month",
-              description: "Review your previous month's statistics.",
-            },
-          ].map((report) => (
-            <div
-              key={report.title}
-              className="rounded-2xl border border-(--app-border) bg-(--surface) p-5"
-            >
-              <CalendarDays
-                size={22}
-                className="text-brand-600 dark:text-brand-400"
-              />
-
-              <h3 className="mt-4 font-semibold text-(--text-primary)">
-                {report.title}
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-(--text-secondary)">
-                {report.description}
-              </p>
-
-              <p className="mt-5 text-xs font-medium text-(--text-secondary)">
-                Report details coming next.
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
       {selectedReading && (
         <EditReadingForm
           reading={selectedReading}
@@ -477,6 +430,7 @@ function Dashboard() {
           onCancel={() => setSelectedReading(null)}
         />
       )}
+
       {/* Delete confirmation modal */}
       {readingToDelete && (
         <DeleteReadingModal
