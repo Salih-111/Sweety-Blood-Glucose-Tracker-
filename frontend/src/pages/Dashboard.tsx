@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react"
 import {
   Activity,
   TrendingUp,
@@ -6,32 +6,31 @@ import {
   Hash,
   CalendarDays,
   ClipboardList,
-} from "lucide-react";
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  X,
+} from "lucide-react"
+import EditReadingForm from "../components/EditReadingForm"
+import { deleteReading } from "../services/glucoseService"
 
-import DashboardLayout from "../components/dashboard/DashboardLayout";
-import useAuth from "../context/useAuth";
-import AddReadingForm from "../components/AddReadingForm";
-
-import {
-  getReadings,
-  getMonthToDateReport,
-} from "../services/glucoseService";
-
-import type {
-  GlucoseReading,
-  ReportSummary,
-  TimeSlot,
-} from "../types/glucose";
+import DashboardLayout from "../components/dashboard/DashboardLayout"
+import useAuth from "../context/useAuth"
+import AddReadingForm from "../components/AddReadingForm"
+import { getReadings, getMonthToDateReport } from "../services/glucoseService"
+import type { GlucoseReading, ReportSummary, TimeSlot } from "../types/glucose"
+import DeleteReadingModal from "../components/DeleteReadingModal"
 
 // Get today's date in the browser's local timezone.
 function getLocalDate() {
-  const today = new Date();
+  const today = new Date()
 
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, "0")
+  const day = String(today.getDate()).padStart(2, "0")
 
-  return `${year}-${month}-${day}`;
+  return `${year}-${month}-${day}`
 }
 
 // Convert API time-slot values into readable labels.
@@ -40,7 +39,7 @@ const timeSlotLabels: Record<TimeSlot, string> = {
   after_breakfast: "After breakfast",
   after_lunch: "After lunch",
   after_dinner: "After dinner",
-};
+}
 
 // Format reading date for display.
 function formatReadingDate(date: string) {
@@ -48,88 +47,143 @@ function formatReadingDate(date: string) {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  });
+  })
 }
 
 // Fetch the data without changing React state. This helper is shared by
 // the initial page load and the refresh after a reading is added.
 async function fetchDashboardData() {
-  const today = getLocalDate();
+  const today = getLocalDate()
 
   const [readingsData, reportData] = await Promise.all([
     getReadings(),
     getMonthToDateReport(today),
-  ]);
+  ])
 
   return {
     readings: readingsData.readings,
     summary: reportData.summary,
-  };
+  }
 }
 
 function Dashboard() {
-  const { user } = useAuth();
+  const { user } = useAuth()
 
-  const [readings, setReadings] = useState<GlucoseReading[]>([]);
-  const [summary, setSummary] = useState<ReportSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [readings, setReadings] = useState<GlucoseReading[]>([])
+  const [summary, setSummary] = useState<ReportSummary | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [selectedReading, setSelectedReading] = useState<GlucoseReading | null>(
+    null,
+  )
+
+  const [deletingReadingId, setDeletingReadingId] = useState<number | null>(
+    null,
+  )
+  const [readingToDelete, setReadingToDelete] = useState<GlucoseReading | null>(
+    null,
+  )
+
+  const [notification, setNotification] = useState<{
+    type: "success" | "error"
+    message: string
+  } | null>(null)
 
   // Refresh the dashboard after a reading is added.
   const loadDashboard = useCallback(async () => {
     try {
-      const data = await fetchDashboardData();
+      const data = await fetchDashboardData()
 
-      setError("");
-      setReadings(data.readings);
-      setSummary(data.summary);
+      setError("")
+      setReadings(data.readings)
+      setSummary(data.summary)
     } catch (error) {
       setError(
         error instanceof Error
           ? error.message
           : "Unable to load dashboard data.",
-      );
+      )
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, []);
+  }, [])
 
   // Load data when the dashboard first mounts.
   useEffect(() => {
-    let isActive = true;
+    let isActive = true
 
     const loadInitialDashboard = async () => {
       try {
-        const data = await fetchDashboardData();
+        const data = await fetchDashboardData()
 
-        if (!isActive) return;
+        if (!isActive) return
 
-        setError("");
-        setReadings(data.readings);
-        setSummary(data.summary);
+        setError("")
+        setReadings(data.readings)
+        setSummary(data.summary)
       } catch (error) {
-        if (!isActive) return;
+        if (!isActive) return
 
         setError(
           error instanceof Error
             ? error.message
             : "Unable to load dashboard data.",
-        );
+        )
       } finally {
         if (isActive) {
-          setIsLoading(false);
+          setIsLoading(false)
         }
       }
-    };
+    }
 
-    void loadInitialDashboard();
+    void loadInitialDashboard()
 
     return () => {
-      isActive = false;
-    };
-  }, []);
+      isActive = false
+    }
+  }, [])
+  useEffect(() => {
+    if (!notification) return
 
-  const recentReadings = readings.slice(0, 5);
+    const timeoutId = window.setTimeout(() => {
+      setNotification(null)
+    }, 3500)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [notification])
+
+  const handleDelete = async () => {
+    if (!readingToDelete) return
+
+    const readingId = readingToDelete.id
+
+    setNotification(null)
+    setDeletingReadingId(readingId)
+
+    try {
+      await deleteReading(readingId)
+      await loadDashboard()
+
+      setReadingToDelete(null)
+
+      setNotification({
+        type: "success",
+        message: "Reading deleted successfully.",
+      })
+    } catch (error) {
+      setNotification({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to delete reading. Please try again.",
+      })
+    } finally {
+      setDeletingReadingId(null)
+    }
+  }
+
+  const recentReadings = readings.slice(0, 5)
 
   const summaryCards = [
     {
@@ -163,10 +217,37 @@ function Dashboard() {
       icon: Hash,
       description: "Recorded this month",
     },
-  ];
+  ]
 
   return (
     <DashboardLayout>
+      {/* Toast notification */}
+      {notification && (
+        <div
+          role={notification.type === "error" ? "alert" : "status"}
+          className={`fixed right-5 top-5 z-60 flex max-w-sm items-center gap-3 rounded-xl border bg-(--surface) px-4 py-3 shadow-xl ${
+            notification.type === "success"
+              ? "border-brand-500/30 text-brand-600 dark:text-brand-400"
+              : "border-red-500/30 text-red-600 dark:text-red-400"
+          }`}
+        >
+          {notification.type === "success" ? (
+            <CheckCircle2 size={20} />
+          ) : (
+            <AlertCircle size={20} />
+          )}
+
+          <p className="flex-1 text-sm font-medium">{notification.message}</p>
+
+          <button
+            type="button"
+            onClick={() => setNotification(null)}
+            aria-label="Dismiss notification"
+          >
+            <X size={17} />
+          </button>
+        </div>
+      )}
       {/* Overview */}
       <section id="overview">
         <div className="mb-8">
@@ -195,7 +276,7 @@ function Dashboard() {
         {/* Summary cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {summaryCards.map((card) => {
-            const Icon = card.icon;
+            const Icon = card.icon
 
             return (
               <div
@@ -228,7 +309,7 @@ function Dashboard() {
                   {card.description}
                 </p>
               </div>
-            );
+            )
           })}
         </div>
       </section>
@@ -262,6 +343,7 @@ function Dashboard() {
             <span>Date</span>
             <span>Time slot</span>
             <span className="text-right">Glucose</span>
+            <span className="text-right">Actions</span>
           </div>
 
           {isLoading ? (
@@ -288,7 +370,7 @@ function Dashboard() {
               {recentReadings.map((reading) => (
                 <div
                   key={reading.id}
-                  className="grid grid-cols-3 items-center gap-3 border-b border-(--app-border) px-5 py-4 last:border-b-0"
+                  className="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-3 border-b border-(--app-border) px-5 py-4 last:border-b-0"
                 >
                   <span className="text-xs text-(--text-secondary) sm:text-sm">
                     {formatReadingDate(reading.reading_date)}
@@ -299,11 +381,37 @@ function Dashboard() {
                   </span>
 
                   <span className="text-right text-sm font-semibold text-(--text-primary)">
-                    {reading.glucose_value}{" "}
-                    <span className="text-xs font-normal text-(--text-secondary)">
+                    {reading.glucose_value}
+                    <span className="ml-1 text-xs font-normal text-(--text-secondary)">
                       mg/dL
                     </span>
                   </span>
+
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReading(reading)}
+                      aria-label="Edit reading"
+                      title="Edit reading"
+                      className="rounded-lg p-2 text-(--text-secondary) transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30"
+                    >
+                      <Pencil size={17} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotification(null)
+                        setReadingToDelete(reading)
+                      }}
+                      disabled={deletingReadingId === reading.id}
+                      aria-label="Delete reading"
+                      title="Delete reading"
+                      className="rounded-lg p-2 text-(--text-secondary) transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:hover:bg-red-900/20"
+                    >
+                      <Trash2 size={17} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -362,8 +470,24 @@ function Dashboard() {
           ))}
         </div>
       </section>
+      {selectedReading && (
+        <EditReadingForm
+          reading={selectedReading}
+          onReadingUpdated={loadDashboard}
+          onCancel={() => setSelectedReading(null)}
+        />
+      )}
+      {/* Delete confirmation modal */}
+      {readingToDelete && (
+        <DeleteReadingModal
+          glucoseValue={readingToDelete.glucose_value}
+          isDeleting={deletingReadingId === readingToDelete.id}
+          onConfirm={() => void handleDelete()}
+          onCancel={() => setReadingToDelete(null)}
+        />
+      )}
     </DashboardLayout>
-  );
+  )
 }
 
-export default Dashboard;
+export default Dashboard
